@@ -1,35 +1,61 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React, { Component, KeyboardEvent } from 'react';
+import Header from './components/Header/Header';
+import ChatHistory from './components/ChatHistory/ChatHistory';
+import ChatInput from './components/ChatInput/ChatInput';
+import './App.css';
+import { connect, sendMsg } from './api';
 
-function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+interface ChatMessage {
+  timeStamp: string;
+  data: string;
 }
 
-export default App
+interface AppState {
+  chatHistory: ChatMessage[];
+}
+
+class App extends Component<{}, AppState> {
+  constructor(props: {}) {
+    super(props);
+    this.state = {
+      chatHistory: []
+    };
+    this.send = this.send.bind(this);
+  }
+
+  componentDidMount() {
+    connect((msg: MessageEvent) => {
+      console.log("New Message");
+
+      // Parse MessageEvent data to match ChatMessage structure
+      const parsedMessage: ChatMessage = {
+        timeStamp: new Date().toISOString(), // or msg.timeStamp.toString() if needed
+        data: msg.data
+      };
+
+      this.setState(prevState => ({
+        chatHistory: [...prevState.chatHistory, parsedMessage]
+      }));
+      console.log(this.state);
+    });
+  }
+
+  send(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Enter") {
+      sendMsg(event.currentTarget.value);
+      event.currentTarget.value = "";
+    }
+  }
+
+  render() {
+    return (
+      <div className="App">
+        <Header />
+        <ChatHistory chatHistory={this.state.chatHistory} />
+        <ChatInput send={this.send} />
+      </div>
+    );
+  }
+}
+
+export default App;
